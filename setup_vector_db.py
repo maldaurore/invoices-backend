@@ -1,0 +1,115 @@
+from chromadb import PersistentClient
+from src.utils.paths import STORE_DIR
+import os
+
+print("--- SETUP DE LA BASE DE DATOS VECTORIAL ---")
+
+print("Creando directorio store...")
+os.makedirs(STORE_DIR, exist_ok=True)
+
+print("Iniciando el cliente de ChromaDB...")
+client = PersistentClient(path=STORE_DIR)
+
+print("Creando la colección 'productos'...")
+collection = client.create_collection(name="productos")
+
+print("Creando la colección 'clientes'...")
+clientes_collection = client.create_collection(name="clientes")
+
+def embed(text):
+    
+    from sentence_transformers import SentenceTransformer
+    model = SentenceTransformer('all-MiniLM-L6-v2')
+    return model.encode(text).tolist()
+
+productos = [
+    {
+        "id": "1",
+        "nombre": "Laptop Dell Inspiron 15",
+        "precio": 14500.00
+    },
+    {
+        "id": "2",
+        "nombre": "Smartphone Samsung Galaxy A54",
+        "precio": 7800.00
+    },
+    {
+        "id": "3",
+        "nombre": "Monitor LG UltraWide 29",
+        "precio": 5500.00
+    },
+    {
+        "id": "4",
+        "nombre": "Teclado Mecánico Logitech G Pro",
+        "precio": 1200.00
+    },
+    {
+        "id": "5",
+        "nombre": "Mouse Inalámbrico Logitech M720",
+        "precio": 800.00
+    }
+]
+
+clientes = [
+    {
+        "nombre": "Juan Pérez",
+        "direccion": "Calle Falsa 123, Ciudad Ficticia",
+        "rfc": "JUAP800101XYZ"
+    },
+    {
+        "nombre": "María López",
+        "direccion": "Avenida Siempre Viva 742, Ciudad Ficticia",
+        "rfc": "MALP800101XYZ"
+    },
+    {
+        "nombre": "Carlos García",
+        "direccion": "Boulevard de los Sueños Rotos 456, Ciudad Ficticia",
+        "rfc": "CAG800101XYZ"
+    },
+    {
+        "nombre": "Ana Torres",
+        "direccion": "Plaza del Sol 789, Ciudad Ficticia",
+        "rfc": "ANT800101XYZ"
+    },
+    {
+        "nombre": "Luis Martínez",
+        "direccion": "Calle del Río 321, Ciudad Ficticia",
+        "rfc": "LUMA800101XYZ"
+    }
+]
+
+print("Agregando productos a la colección...")
+for producto in productos:
+    print(f"Agregando producto: {producto['nombre']}")
+    try:
+        
+        collection.add(
+            ids=[producto["id"]],
+            documents=[producto["nombre"]],
+            embeddings=[embed(producto["nombre"])],
+            metadatas=[{
+                "precio": producto["precio"],
+                "nombre": producto["nombre"]
+            }]
+        )
+    except Exception as e:
+        print(f"Error al agregar el producto {producto['nombre']}: {e}")
+
+print("Agregando clientes a la colección...")
+for cliente in clientes:
+    print(f"Agregando cliente: {cliente['nombre']}")
+    try:
+        
+        clientes_collection.add(
+            ids=[cliente["rfc"]],
+            documents=[cliente["nombre"]],
+            embeddings=[embed(cliente["nombre"])],
+            metadatas=[{
+                "direccion": cliente["direccion"],
+                "rfc": cliente["rfc"]
+            }]
+        )
+    except Exception as e:
+        print(f"Error al agregar el cliente {cliente['nombre']}: {e}")
+        
+print("--- BASE DE DATOS VECTORIAL CONFIGURADA ---")
