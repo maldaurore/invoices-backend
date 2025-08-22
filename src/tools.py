@@ -8,14 +8,14 @@ from agents import function_tool
 from pydantic import BaseModel
 from src.utils.paths import OUTPUT_DIR, PROJECT_ROOT, STORE_DIR
 from chromadb import PersistentClient
+import logging
+
+logger = logging.getLogger(__name__)
 
 UMBRAL_SIMILITUD = 0.5
 
-print("DEBUG: Iniciando el cliente de ChromaDB...")
 client = PersistentClient(path=STORE_DIR)
-print("DEBUG: Obteniendo la colección 'productos'...")
 productos_collection = client.get_collection(name="productos")
-print("DEBUG: Obteniendo la colección 'clientes'...")
 clientes_collection = client.get_collection(name="clientes")
 
 class Emisor(BaseModel):
@@ -66,12 +66,12 @@ def embed(text):
 @function_tool
 def generar_factura_pdf(receptor: Receptor, conceptos: list[Concepto], output_file: str = "factura.pdf"):
     """Genera una factura en PDF con los datos del receptor y los conceptos proporcionados."""
-    
-    print("Generando factura PDF...")
-    print(f"Receptor: {receptor}")
-    print(f"Conceptos: {conceptos}")
-    
-    try: 
+
+    logger.info("Generando factura PDF...")
+    logger.info(f"Receptor: {receptor}")
+    logger.info(f"Conceptos: {conceptos}")
+
+    try:
         pdf = FacturaPDF()
         pdf.add_page()
         pdf.ln(20)
@@ -146,15 +146,15 @@ def generar_factura_pdf(receptor: Receptor, conceptos: list[Concepto], output_fi
 
         file_path = os.path.join(OUTPUT_DIR, output_file)
         pdf.output(file_path)
-        print(f"Factura generada: {file_path}")
+        logger.info(f"Factura generada: {file_path}")
         return f"Factura generada: {file_path}"
 
     except Exception as e:
-        print(f"Error al generar la factura: {e}")
+        logger.error(f"Error al generar la factura: {e}")
         return f"Error al generar la factura: {e}"
 
 def getClientData(nombreCliente: str) -> Receptor:
-    print(f"DEBUG: Obteniendo datos del cliente '{nombreCliente}'")
+    logger.debug(f"Obteniendo datos del cliente '{nombreCliente}'")
 
     result = clientes_collection.query(
         query_embeddings=[embed(nombreCliente)],
@@ -162,13 +162,13 @@ def getClientData(nombreCliente: str) -> Receptor:
     )
     
     if result['distances'][0][0] >= UMBRAL_SIMILITUD:
-        print(f"DEBUG: No se encontró un cliente similar a '{nombreCliente}'")
+        logger.error(f"No se encontró un cliente similar a '{nombreCliente}'")
         raise Exception("Cliente no encontrado")
 
     nombreClienteEncontrado = result['documents'][0][0]
     clienteInfo = result['metadatas'][0][0]
-    
-    print(f"DEBUG: Cliente encontrado en la base de datos vectorial: {nombreClienteEncontrado} con info {clienteInfo}")
+
+    logger.debug(f"Cliente encontrado en la base de datos vectorial: {nombreClienteEncontrado} con info {clienteInfo}")
 
     return Receptor(
         nombre=nombreClienteEncontrado,
@@ -177,7 +177,7 @@ def getClientData(nombreCliente: str) -> Receptor:
     )
 
 def getProductsPrices(conceptos: list[str]) -> list[Precio]:
-    print(f"DEBUG: Obteniendo precios de conceptos: {conceptos}")
+    logger.debug(f"Obteniendo precios de conceptos: {conceptos}")
 
     result = productos_collection.query(
         query_embeddings=[embed(c) for c in conceptos],
@@ -193,20 +193,18 @@ def getProductsPrices(conceptos: list[str]) -> list[Precio]:
     ]
     
     if (len(conceptosEncontrados) < len(conceptos)):
-        print(f"DEBUG: No se encontraron todos los conceptos. Conceptos solicitados: {conceptos}, Conceptos encontrados: {conceptosEncontrados}")
+        logger.error(f"No se encontraron todos los conceptos. Conceptos solicitados: {conceptos}, Conceptos encontrados: {conceptosEncontrados}")
         raise Exception("No se encontraron todos los conceptos solicitados")
 
-    print(f"DEBUG: Conceptos encontrados en la base de datos vectorial: {conceptosEncontrados}")
+    logger.debug(f"Conceptos encontrados en la base de datos vectorial: {conceptosEncontrados}")
     return conceptosEncontrados
 
 @function_tool
 def getClientAndPrices(nombreCliente: str, productos: list[str]) -> tuple[Receptor, list[Precio]]:
     """Obtiene los datos del cliente y los precios de los productos."""
-    print("Obteniendo datos del cliente...")
+    logger.debug("Obteniendo datos del cliente...")
     receptor = getClientData(nombreCliente)
-    print("Obteniendo precios de productos...")
+    logger.debug("Obteniendo precios de productos...")
     precios = getProductsPrices(productos)
     
-    #print(receptor)
-    #print(precios)
     return receptor, precios

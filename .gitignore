@@ -3,3 +3,4 @@ output/
 src/store/
 __pycache__/
 .venv/
+app.log

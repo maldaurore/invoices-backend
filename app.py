@@ -1,3 +1,17 @@
+import logging, sys
+from logging.handlers import RotatingFileHandler
+
+logger = logging.getLogger()
+logger.setLevel("INFO")
+
+h_console = logging.StreamHandler(sys.stderr)
+h_console.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s"))
+logger.addHandler(h_console)
+
+h_file = RotatingFileHandler("app.log", maxBytes=10*1024*1024, backupCount=3, encoding="utf-8")
+h_file.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s"))
+logger.addHandler(h_file)
+
 import os
 from flask import Flask, request, jsonify, abort, send_from_directory
 from flask_cors import CORS
@@ -6,14 +20,18 @@ from openai import OpenAI
 from werkzeug.utils import secure_filename
 import tempfile
 from agents import Runner
-from src.main_agent import mainAgent
 from src.utils.paths import OUTPUT_DIR
+from src.utils.setup_vector_db import setup_db
+
+setup_db()
+
+from src.main_agent import mainAgent
 
 load_dotenv()
+    
 app = Flask(__name__)
 CORS(app) 
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-print(os.getenv("OPENAI_API_KEY"))
 
 TRANSCRIBE_MODEL = os.getenv("TRANSCRIBE_MODEL", "gpt-4o-mini-transcribe")
 
@@ -21,11 +39,11 @@ TRANSCRIBE_MODEL = os.getenv("TRANSCRIBE_MODEL", "gpt-4o-mini-transcribe")
 def health():
     try:
         _ = client.models.list()
-        print("OK: la key funciona")
+        logger.info("OK: la key funciona")
+        return {"ok": True}
     except Exception as e:
-        print("Fallo list models:", e)
-
-    return {"ok": True}
+        logger.error("Fallo list models:", e)
+        return {"ok": False, "error": str(e)}
 
 @app.route("/download/<path:filename>", methods=["GET"])
 def download_file(filename):
@@ -38,7 +56,7 @@ def download_file(filename):
         abort(400, description="Ruta invalida.")
         
     if not os.path.exists(full_path):
-        print(f"Archivo no encontrado: {full_path}")
+        logger.error(f"Archivo no encontrado: {full_path}")
         abort(404, description="Archivo no encontrado.")
     
     return send_from_directory(OUTPUT_DIR, safe_name, as_attachment=True, mimetype="application/pdf")
@@ -69,6 +87,8 @@ def transcribe():
                 model='whisper-1',
                 file=audio,
             )
+        return jsonify({"text": result.text}), 200
+
 
 @app.route("/send-message", methods=["POST"])
 async def sendMessage():
