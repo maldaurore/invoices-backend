@@ -11,6 +11,7 @@ from chromadb import PersistentClient
 import logging
 import unicodedata
 import re
+from openai import OpenAI
 
 logger = logging.getLogger(__name__)
 
@@ -19,6 +20,7 @@ UMBRAL_SIMILITUD = 0.5
 client = PersistentClient(path=STORE_DIR)
 productos_collection = client.get_collection(name="productos")
 clientes_collection = client.get_collection(name="clientes")
+openai = OpenAI()
 
 class Emisor(BaseModel):
     nombre: str
@@ -60,10 +62,13 @@ class FacturaPDF(FPDF):
         self.cell(0, 10, f'Página {self.page_no()}', 0, 0, 'C')   
 
 def embed(text):
-    
-    from sentence_transformers import SentenceTransformer
-    model = SentenceTransformer('all-MiniLM-L6-v2')
-    return model.encode(text).tolist()
+
+    embedding = openai.embeddings.create(
+        input=text, 
+        model="text-embedding-3-small", 
+        encoding_format="float"
+    )
+    return(embedding.data[0].embedding)
 
 def normalize_filename(filename):
     nfkd = unicodedata.normalize('NFKD', filename)

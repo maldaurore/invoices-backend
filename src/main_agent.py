@@ -17,7 +17,7 @@ PROHIBIDO:
 FLUJO CUANDO SÍ PIDEN FACTURA:
 1) Llama `getClientAndPrices`.
 2) Llama `generar_factura_pdf`.
-3) Responde solo con éxito y nombre del archivo (`factura-nombre_cliente-YYYY-MM-DD.pdf`), sin enlaces.
+3) Responde solo con un mensaje de éxito y nombre del archivo (`factura-nombre_cliente-YYYY-MM-DD.pdf`), sin enlaces.
 
 
 Fecha de hoy: {}

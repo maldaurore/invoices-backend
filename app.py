@@ -1,6 +1,8 @@
 import logging, sys
 from logging.handlers import RotatingFileHandler
+from dotenv import load_dotenv
 
+load_dotenv()
 logger = logging.getLogger()
 logger.setLevel("INFO")
 
@@ -15,7 +17,6 @@ logger.addHandler(h_file)
 import os
 from flask import Flask, request, jsonify, abort, send_from_directory
 from flask_cors import CORS
-from dotenv import load_dotenv
 from openai import OpenAI
 from werkzeug.utils import secure_filename
 import tempfile
@@ -26,8 +27,6 @@ from src.utils.setup_vector_db import setup_db
 setup_db()
 
 from src.main_agent import mainAgent
-
-load_dotenv()
     
 app = Flask(__name__)
 CORS(app) 

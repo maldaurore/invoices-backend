@@ -2,8 +2,11 @@ from chromadb import PersistentClient
 from src.utils.paths import STORE_DIR
 import os
 import logging
+from openai import OpenAI
 
 logger = logging.getLogger(__name__)
+
+openai = OpenAI()
 
 productos = [
     {
@@ -82,10 +85,13 @@ def setup_db():
     clientes_collection = client.create_collection(name="clientes")
 
     def embed(text):
-        
-        from sentence_transformers import SentenceTransformer
-        model = SentenceTransformer('all-MiniLM-L6-v2')
-        return model.encode(text).tolist()
+
+        embedding = openai.embeddings.create(
+            input=text, 
+            model="text-embedding-3-small", 
+            encoding_format="float"
+        )
+        return(embedding.data[0].embedding)
 
     logger.info("Agregando productos a la colección...")
     for producto in productos:
