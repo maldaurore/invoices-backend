@@ -9,6 +9,8 @@ from pydantic import BaseModel
 from src.utils.paths import OUTPUT_DIR, PROJECT_ROOT, STORE_DIR
 from chromadb import PersistentClient
 import logging
+import unicodedata
+import re
 
 logger = logging.getLogger(__name__)
 
@@ -62,6 +64,12 @@ def embed(text):
     from sentence_transformers import SentenceTransformer
     model = SentenceTransformer('all-MiniLM-L6-v2')
     return model.encode(text).tolist()
+
+def normalize_filename(filename):
+    nfkd = unicodedata.normalize('NFKD', filename)
+    only_ascii = nfkd.encode('ASCII', 'ignore').decode('ASCII')
+    safe = re.sub(r'[^\w\.-]', '_', only_ascii)
+    return safe
 
 @function_tool
 def generar_factura_pdf(receptor: Receptor, conceptos: list[Concepto], output_file: str = "factura.pdf"):
@@ -144,7 +152,9 @@ def generar_factura_pdf(receptor: Receptor, conceptos: list[Concepto], output_fi
         pdf.set_font("Arial", 'I', 8)
         pdf.multi_cell(0, 10, "Este documento es una representación impresa de un CFDI simulado. No tiene validez fiscal.")
 
-        file_path = os.path.join(OUTPUT_DIR, output_file)
+        normalized_filename = normalize_filename(output_file)
+        logger.info(f"Nombre de archivo normalizado: {normalized_filename}")
+        file_path = os.path.join(OUTPUT_DIR, normalized_filename)
         pdf.output(file_path)
         logger.info(f"Factura generada: {file_path}")
         return f"Factura generada: {file_path}"

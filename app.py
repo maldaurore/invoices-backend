@@ -52,6 +52,9 @@ def download_file(filename):
         abort(400, description="Nombre de archivo invalido.")
     
     full_path = os.path.abspath(os.path.join(OUTPUT_DIR, safe_name))
+    logger.info(f"OUTPUT_DIR: {OUTPUT_DIR}")
+    logger.info(f"full_path: {full_path}")
+
     if not full_path.startswith(OUTPUT_DIR):
         abort(400, description="Ruta invalida.")
         
