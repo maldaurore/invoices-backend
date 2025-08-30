@@ -29,7 +29,7 @@ setup_db()
 from src.main_agent import mainAgent
     
 app = Flask(__name__)
-CORS(app, origins=[os.getenv("FRONTEND_URL")]) 
+CORS(app, resources={r"/*": {"origins": os.getenv("FRONTEND_URL")}})
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 TRANSCRIBE_MODEL = os.getenv("TRANSCRIBE_MODEL", "gpt-4o-mini-transcribe")
